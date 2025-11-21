@@ -66,7 +66,6 @@ export class Game {
             './src/Music/SpotiDownloader.com - Can u balll - qualowww.mp3',
             './src/Music/SpotiDownloader.com - Dame Tu Cosita (feat. Cutty Ranks) - El Chombo.mp3',
             './src/Music/SpotiDownloader.com - Free Lilquan - Lilqua 50.mp3',
-            './src/Music/C E C E.mp3',
             './src/Music/Good Looking.mp3',
             './src/Music/Nightcall.mp3',
             './src/Music/That Ain\'t On The News.mp3'
