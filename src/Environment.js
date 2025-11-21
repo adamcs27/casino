@@ -69,7 +69,7 @@ export class Environment {
         this.scene.add(rightWall);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
         this.scene.add(ambientLight);
 
         const pointLight = new THREE.PointLight(0xffaa00, 1, 15);
@@ -82,9 +82,9 @@ export class Environment {
         const machineMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.5 });
 
         const machinePositions = [
-            [0, 1.25, -8],
-            [-3, 1.25, -8],
-            [3, 1.25, -8]
+            [0, 1.25, -9],
+            [-3, 1.25, -9],
+            [3, 1.25, -9]
         ];
 
         machinePositions.forEach(pos => {
@@ -102,14 +102,14 @@ export class Environment {
         });
 
         // Blackjack Table
-        const tableGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
+        const tableGeo = new THREE.CylinderGeometry(2, 1.5, 0.5, 32);
         const tableMat = new THREE.MeshStandardMaterial({ color: 0x006400, roughness: 0.5 }); // Green felt
         const table = new THREE.Mesh(tableGeo, tableMat);
         table.position.set(5, 1, 5);
         this.scene.add(table);
 
         // Table Base
-        const baseGeo = new THREE.CylinderGeometry(0.5, 1, 1, 16);
+        const baseGeo = new THREE.CylinderGeometry(.5, 1, 1, 16);
         const baseMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
         const base = new THREE.Mesh(baseGeo, baseMat);
         base.position.set(5, 0.5, 5);
@@ -133,8 +133,8 @@ export class Environment {
 
         // Player NPCs
         const playerPositions = [
-            [7.5, 1.2, 5],
-            [2.5, 1.2, 5]
+            [7.5, 1, 5],
+            [2.5, 1, 5]
         ];
 
         playerPositions.forEach(pos => {
@@ -150,25 +150,30 @@ export class Environment {
         });
 
         // Empty Chair (Interactable)
-        const chairGeo = new THREE.BoxGeometry(1, 1, 1);
+        const chairGeo = new THREE.BoxGeometry(1, 1.5, 1);
+        const chairbackGeo = new THREE.BoxGeometry(1, 2, .2);
         const chairMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
         const chair = new THREE.Mesh(chairGeo, chairMat);
-        chair.position.set(5, 0.5, 7.5);
+        const chairback = new THREE.Mesh(chairbackGeo, chairMat);
+        chair.position.set(5, 0, 7.5);
+        chairback.position.set(5, 1, 8);
         chair.userData = { interactable: true, type: 'blackjack' };
         this.scene.add(chair);
+        this.scene.add(chairback);
 
         // Snake Desk
-        const deskGeo = new THREE.BoxGeometry(3, 1.5, 1.5);
+        const deskGeo = new THREE.BoxGeometry(3, 1.0, 1.5);
         const deskMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63 });
         const desk = new THREE.Mesh(deskGeo, deskMat);
-        desk.position.set(-5, 0.75, 5);
+        desk.position.set(-9, 0.5, 5);
+        desk.lookAt(5, 1.2, 5);
         this.scene.add(desk);
 
         // Computer
         const monitorGeo = new THREE.BoxGeometry(1, 0.8, 0.2);
         const monitorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const monitor = new THREE.Mesh(monitorGeo, monitorMat);
-        monitor.position.set(0, 0.9, 0);
+        monitor.position.set(0, 0.9, -.5);
         desk.add(monitor);
 
         const screenGeo = new THREE.PlaneGeometry(0.9, 0.7);
@@ -195,7 +200,7 @@ export class Environment {
 
         // Central Overhead Light
         const centralLight = new THREE.PointLight(0xffaa00, 2.0, 30);
-        centralLight.position.set(0, 4, 0);
+        centralLight.position.set(0, 5, 0);
         this.scene.add(centralLight);
 
         // Central Light Fixture
@@ -203,7 +208,7 @@ export class Environment {
             new THREE.BoxGeometry(1, 0.2, 1),
             new THREE.MeshBasicMaterial({ color: 0xffaa00 })
         );
-        centralFixture.position.set(0, 3.9, 0);
+        centralFixture.position.set(0, 8, 0);
         this.scene.add(centralFixture);
 
         // Security Guard (Moved near new door)
@@ -213,7 +218,8 @@ export class Environment {
 
         // Guard Body
         const gBody = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.5, 0.5, 1.8, 16),
+
+            new THREE.CapsuleGeometry(.5, 1.5, 1.5, 16),
             new THREE.MeshStandardMaterial({ color: 0x1a237e })
         );
         gBody.position.y = 0.9;
