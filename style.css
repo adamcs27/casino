@@ -214,6 +214,31 @@ body {
     }
 }
 
+/* Broke Notification */
+#broke-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #00ff00;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #00ff00;
+    border-radius: 5px;
+}
+
+#broke-notification.show {
+    opacity: 1;
+}
+
 #game-overlay {
     position: absolute;
     top: 0;

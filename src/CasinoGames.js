@@ -47,6 +47,16 @@ export class CasinoGames {
         if (display) {
             display.innerText = `Money: $${this.money}`;
         }
+
+        // Show/hide broke notification
+        const brokeNotification = document.getElementById('broke-notification');
+        if (brokeNotification) {
+            if (this.money <= 0) {
+                brokeNotification.classList.add('show');
+            } else {
+                brokeNotification.classList.remove('show');
+            }
+        }
     }
 
     renderGameUI(type) {
