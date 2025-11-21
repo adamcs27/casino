@@ -70,12 +70,24 @@ export class Game {
             './src/Music/Nightcall.mp3',
             './src/Music/That Ain\'t On The News.mp3'
         ];
+
+        // Shuffle the playlist
+        this.shufflePlaylist();
+
         this.currentTrackIndex = 0;
         this.musicStarted = false;
 
         this.bgMusic.onEnded = () => {
             this.playNextTrack();
         };
+    }
+
+    shufflePlaylist() {
+        // Fisher-Yates shuffle algorithm
+        for (let i = this.playlist.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.playlist[i], this.playlist[j]] = [this.playlist[j], this.playlist[i]];
+        }
     }
 
     playNextTrack() {
