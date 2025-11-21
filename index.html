@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro 3D Casino</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="ui-layer">
+        <div id="crosshair">+</div>
+        <div id="interaction-prompt">Press E to Interact</div>
+        <div id="money-display">Money: $100</div>
+        <div id="controls-display">Press "M" for Menu<br>Press "T" to Skip Song</div>
+        <div id="radio-container">
+            <div id="radio-icon">📻</div>
+            <div id="now-playing-wrapper">
+                <div id="now-playing-text">Loading...</div>
+            </div>
+        </div>
+        <div id="heroin-veins" class="heroin-veins"></div>
+        <div id="fade-overlay"></div>
+        <div id="lean-eyelid"></div>
+        <div id="lean-text">my eyes low but i aint sleepy</div>
+        <div id="heroin-text">KILL THE GUARD</div>
+
+        <div id="inventory-list">
+            <div id="item-1" class="inv-item">1. Cigarette</div>
+            <div id="item-2" class="inv-item">2. Lean</div>
+            <div id="item-3" class="inv-item">3. Heroin</div>
+            <div id="item-4" class="inv-item">4. Knife</div>
+        </div>
+
+        <div id="pause-menu" class="hidden">
+            <h1>PAUSED</h1>
+            <p>Press CLICK to Resume</p>
+            <button id="quit-btn">QUIT GAME</button>
+        </div>
+
+        <div id="game-overlay" class="hidden">
+            <div id="game-content">
+                <!-- Game UI will be injected here -->
+                <button id="close-game">Close</button>
+            </div>
+        </div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
