@@ -92,10 +92,6 @@ export class Player {
 
         // Trigger Heroin Respawn if active
         if (this.isHeroinActive) {
-            // Remove the text immediately when guard is killed
-            const heroinText = document.getElementById('heroin-text');
-            if (heroinText) heroinText.classList.remove('heroin-text-active');
-
             this.triggerHeroinRespawn();
         }
     }
@@ -416,9 +412,10 @@ export class Player {
             if (this.heroinGroup) this.heroinGroup.visible = true;
             this.updateInventoryUI(3);
 
-            // Reset state
-            this.isUsingHeroin = false;
-            this.heroinTimer = 0;
+            // Reset visual state (but preserve active effect states)
+            if (!this.isUsingHeroin && !this.isHeroinActive) {
+                this.heroinTimer = 0;
+            }
             if (this.syringe) this.syringe.visible = false;
             if (this.lighter) this.lighter.visible = true;
             if (this.flame) this.flame.intensity = 0;
@@ -937,18 +934,54 @@ export class Player {
 
                 if (this.isHeroinActive) {
                     if (veins) veins.style.opacity = 1;
-                    if (heroinText) heroinText.classList.add('heroin-text-active');
+
+                    // Check if guard is dead
+                    let guardIsDead = false;
+                    if (this.lastKnockedOutGuard && this.lastKnockedOutGuard.userData.isKnockedOut) {
+                        guardIsDead = true;
+                    }
+
+                    // Show text only if guard is alive
+                    if (heroinText) {
+                        if (guardIsDead) {
+                            heroinText.classList.remove('heroin-text-active');
+                        } else {
+                            heroinText.classList.add('heroin-text-active');
+                        }
+                    }
 
                     // Flash Effect
                     ui.classList.add('heroin-flash');
                     const hue = (performance.now() * 0.1) % 360;
                     ui.style.filter = `hue-rotate(${hue}deg) blur(1px)`;
-                    ui.style.filter = `hue-rotate(${hue}deg) blur(1px)`;
 
-                    // Timer just tracks duration for heartbeat, text persists until guard is killed
+                    // Effect duration logic:
+                    // - If guard is dead: effect lasts 5 seconds (total 8s including 3s animation)
+                    // - If guard is alive: effect lasts until guard is killed
                     this.heroinTimer += delta;
+                    if (guardIsDead && this.heroinTimer > 8.0) {
+                        // Guard already dead, end effect after 5 seconds of high
+                        this.isHeroinActive = false;
+                        this.isUsingHeroin = false;
+                        this.heroinHighTriggered = false;
+
+                        if (veins) veins.style.opacity = 0;
+                        if (heroinText) heroinText.classList.remove('heroin-text-active');
+                        ui.classList.remove('heroin-flash');
+                        ui.style.filter = 'none';
+
+                        // Reset heroin visual items
+                        if (this.heroinGroup) {
+                            this.heroinGroup.position.set(0.2, -0.2, -0.4);
+                            this.heroinGroup.rotation.set(0, 0, 0);
+                        }
+                        if (this.lighter) this.lighter.visible = true;
+                        if (this.syringe) this.syringe.visible = false;
+                        if (this.flame) this.flame.intensity = 0;
+                    }
                 } else {
                     if (veins) veins.style.opacity = 0;
+                    if (heroinText) heroinText.classList.remove('heroin-text-active');
                     ui.classList.remove('heroin-flash');
                     ui.style.filter = 'none';
                 }
