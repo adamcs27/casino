@@ -728,42 +728,6 @@ export class Player {
         } catch (e) { console.error("Error unequipping all:", e); }
     }
 
-    toggleHeroin() {
-        if (this.hasHeroin) {
-            this.hasHeroin = false;
-            this.heroinGroup.visible = false;
-            // Reset state
-            this.isUsingHeroin = false;
-            this.heroinTimer = 0;
-            this.syringe.visible = false;
-            this.lighter.visible = true;
-            this.flame.intensity = 0;
-            return;
-        }
-        this.unequipAll();
-        this.hasHeroin = true;
-        this.heroinGroup.visible = true;
-
-        // Reset state
-        this.isUsingHeroin = false;
-        this.heroinTimer = 0;
-        this.syringe.visible = false;
-        this.lighter.visible = true;
-        this.flame.intensity = 0;
-    }
-
-    toggleKnife() {
-        if (this.hasKnife) {
-            this.hasKnife = false;
-            this.knifeGroup.visible = false;
-            this.isStabbing = false;
-            this.stabTimer = 0;
-            return;
-        }
-        this.unequipAll();
-        this.hasKnife = true;
-        this.knifeGroup.visible = true;
-    }
 
     useHeroin() {
         if (!this.hasHeroin || this.isUsingHeroin) return;
