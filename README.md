@@ -12,7 +12,7 @@ Explore the dark, retro-styled casino. Interact with games, use items, and watch
 
 ### Items (Keys 1-4)
 1.  **Cigarette**: Relax. Click to take a drag. Smoke trails as you walk.
-2.  **Hand**: Slap! Click to slap. Can knock out the guard.
+2.  **Lean**: Lean! Click to slap. Sip ts.
 3.  **Heroin**: A trip. Click to use. Visual/Audio effects. **Fades to black and resets player after use.**
 4.  **Knife**: Dangerous. Click to stab. Leaves blood stains and kills guard (with a scream).
 
