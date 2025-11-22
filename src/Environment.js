@@ -77,25 +77,29 @@ export class Environment {
         this.scene.add(pointLight);
 
         // Pillars removed as per request
-        // Add Slot Machines
+        // Add Slot Machines with different bet amounts
         const machineGeo = new THREE.BoxGeometry(1.5, 2.5, 1.5);
-        const machineMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.5 });
 
-        const machinePositions = [
-            [0, 1.25, -9],
-            [-3, 1.25, -9],
-            [3, 1.25, -9]
+        const machineConfigs = [
+            { pos: [-3, 1.25, -9], color: 0x00ff00, bet: 5 },   // Green - $5
+            { pos: [0, 1.25, -9], color: 0xffaa00, bet: 10 },   // Orange - $10
+            { pos: [3, 1.25, -9], color: 0xff0000, bet: 25 }    // Red - $25
         ];
 
-        machinePositions.forEach(pos => {
+        machineConfigs.forEach(config => {
+            const machineMat = new THREE.MeshStandardMaterial({ color: config.color, roughness: 0.5 });
             const machine = new THREE.Mesh(machineGeo, machineMat);
-            machine.position.set(...pos);
-            machine.userData = { interactable: true, type: 'slots' };
+            machine.position.set(...config.pos);
+            machine.userData = {
+                interactable: true,
+                type: 'slots',
+                betAmount: config.bet
+            };
             this.scene.add(machine);
 
             // Add a "screen" to the machine
             const screenGeo = new THREE.PlaneGeometry(1, 1);
-            const screenMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const screenMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
             const screen = new THREE.Mesh(screenGeo, screenMat);
             screen.position.set(0, 0.5, 0.76);
             machine.add(screen);
@@ -106,6 +110,7 @@ export class Environment {
         const tableMat = new THREE.MeshStandardMaterial({ color: 0x006400, roughness: 0.5 }); // Green felt
         const table = new THREE.Mesh(tableGeo, tableMat);
         table.position.set(5, 1, 5);
+        table.userData = { collision: true };
         this.scene.add(table);
 
         // Table Base
@@ -113,6 +118,7 @@ export class Environment {
         const baseMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
         const base = new THREE.Mesh(baseGeo, baseMat);
         base.position.set(5, 0.5, 5);
+        base.userData = { collision: true };
         this.scene.add(base);
 
         // Dealer NPC
@@ -167,6 +173,7 @@ export class Environment {
         const desk = new THREE.Mesh(deskGeo, deskMat);
         desk.position.set(-9, 0.5, 5);
         desk.lookAt(5, 1.2, 5);
+        desk.userData = { collision: true };
         this.scene.add(desk);
 
         // Computer
@@ -174,8 +181,10 @@ export class Environment {
         const monitorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const monitor = new THREE.Mesh(monitorGeo, monitorMat);
         monitor.position.set(0, 0.9, -.5);
+        monitor.userData = { interactable: true, type: 'snake' };
         desk.add(monitor);
 
+        // Screen
         const screenGeo = new THREE.PlaneGeometry(0.9, 0.7);
         const screenMat = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue screen
         const screen = new THREE.Mesh(screenGeo, screenMat);
@@ -183,9 +192,9 @@ export class Environment {
         monitor.add(screen);
 
         // Make desk interactable (or the monitor)
-        desk.userData = { interactable: true, type: 'snake' };
 
         // Entry Door (Moved to side wall)
+        // Door and Frame
         const doorFrameGeo = new THREE.BoxGeometry(0.2, 3.2, 2.2);
         const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
         const doorFrame = new THREE.Mesh(doorFrameGeo, doorFrameMat);
@@ -195,7 +204,8 @@ export class Environment {
         const doorGeo = new THREE.BoxGeometry(0.1, 3, 2);
         const doorMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
         const door = new THREE.Mesh(doorGeo, doorMat);
-        door.position.set(9.85, 1.5, 0);
+        door.position.set(9.75, 1.5, 0); // Moved away from frame to fix z-fighting
+        door.userData = { interactable: true, type: 'door', location: 'inside' };
         this.scene.add(door);
 
         // Central Overhead Light

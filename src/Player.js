@@ -328,6 +328,10 @@ export class Player {
 
         // Smoke Particles
         this.smokeParticles = [];
+
+        // Item counts (cigarette and knife are infinite)
+        this.heroinCount = 1;
+        this.leanCount = 2;
     }
 
     createLean() {
@@ -448,6 +452,32 @@ export class Player {
                 else el.classList.remove('active');
             }
         }
+
+        // Update item counts
+        const leanCountEl = document.getElementById('lean-count');
+        const heroinCountEl = document.getElementById('heroin-count');
+        if (leanCountEl) leanCountEl.innerText = `(${this.leanCount})`;
+        if (heroinCountEl) heroinCountEl.innerText = `(${this.heroinCount})`;
+
+        // Update inventory hint
+        const hintEl = document.getElementById('inventory-hint');
+        if (hintEl) {
+            const noLean = this.leanCount <= 0;
+            const noHeroin = this.heroinCount <= 0;
+
+            if (noLean && noHeroin) {
+                hintEl.innerText = 'Go out to the alley to buy more drugs';
+                hintEl.style.display = 'block';
+            } else if (noLean) {
+                hintEl.innerText = 'Go out to the alley to buy more Tris';
+                hintEl.style.display = 'block';
+            } else if (noHeroin) {
+                hintEl.innerText = 'Go out to the alley to buy more Heroin';
+                hintEl.style.display = 'block';
+            } else {
+                hintEl.style.display = 'none';
+            }
+        }
     }
 
     takeDrag() {
@@ -458,8 +488,14 @@ export class Player {
 
     drinkLean() {
         if (!this.hasLean || this.isDrinking) return;
+        if (this.leanCount <= 0) {
+            console.log("No Lean left!");
+            return;
+        }
         this.isDrinking = true;
         this.drinkTimer = 0;
+        this.leanCount--;
+        this.updateInventoryUI(this.hasLean ? 2 : 0);
     }
 
     updateLean(delta) {
@@ -515,47 +551,66 @@ export class Player {
     }
 
     updateCigarette(delta) {
+        // Always update smoke particles (even if cigarette is unequipped)
+        for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+            const p = this.smokeParticles[i];
+
+            p.userData.life -= delta;
+            p.position.add(p.userData.velocity.clone().multiplyScalar(delta));
+            p.material.opacity = p.userData.life * 0.47;
+
+            if (p.userData.life <= 0) {
+                if (p.parent) p.parent.remove(p);
+                this.smokeParticles.splice(i, 1);
+            }
+        }
+
         if (!this.hasCigarette) return;
 
-        // Smoke Particles
-        if (this.isSmoking && this.smokeTimer > 0.5 && this.smokeTimer < 1.5) {
-            // Spawn smoke
-            if (Math.random() < 0.3) {
-                const smokeGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
-                const smokeMat = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.6 });
+        // Smoke Particles - spawn after animation finishes (1.5s to 2.5s)
+        if (this.isSmoking && this.smokeTimer > 1.5 && this.smokeTimer < 2.5) {
+            // Spawn smoke more frequently for visibility
+            if (Math.random() < 0.5) {
+                const smokeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+                const smokeMat = new THREE.MeshBasicMaterial({
+                    color: 0xdddddd,
+                    transparent: true,
+                    opacity: 0.7,
+                    depthWrite: false
+                });
                 const smoke = new THREE.Mesh(smokeGeo, smokeMat);
 
-                // Position at tip (need world position of tip)
+                // Position at cigarette tip (orange end)
                 const tipPos = new THREE.Vector3(0, 0.22, 0);
                 tipPos.applyMatrix4(this.cigaretteGroup.matrixWorld);
-
                 smoke.position.copy(tipPos);
 
-                // Calculate forward direction from camera
+                // Get forward direction from camera
                 const forward = new THREE.Vector3();
                 this.controls.getObject().getWorldDirection(forward);
 
                 // Velocity: Up + Forward + Random Spread
-                const velocity = new THREE.Vector3(0, 0.3, 0); // Up
+                const velocity = new THREE.Vector3(0, 0.4, 0); // Upward
                 velocity.add(forward.multiplyScalar(1.0)); // Forward push
-                velocity.add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(0.1)); // Spread
+                velocity.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2
+                )); // Random spread
 
-                smoke.userData = { type: 'smoke', life: 1.0, velocity: velocity };
+                smoke.userData = {
+                    type: 'smoke',
+                    life: 1.5,
+                    velocity: velocity,
+                    worldSpace: true
+                };
 
-                this.controls.getObject().parent.add(smoke); // Add to scene/world, not camera
+                // Add to scene
+                let scene = this.controls.getObject();
+                while (scene.parent) scene = scene.parent;
+                scene.add(smoke);
+
                 this.smokeParticles.push(smoke);
-            }
-        }
-
-        // Update particles
-        for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
-            const p = this.smokeParticles[i];
-            p.userData.life -= delta;
-            p.position.add(p.userData.velocity.clone().multiplyScalar(delta));
-            p.material.opacity = p.userData.life * 0.6;
-            if (p.userData.life <= 0) {
-                p.parent.remove(p);
-                this.smokeParticles.splice(i, 1);
             }
         }
 
@@ -585,9 +640,9 @@ export class Player {
                 // Hold & Glow
                 this.tipMat.color.setHex(0xff4500); // Red hot
                 this.cigLight.intensity = 1.0;
-            } else if (this.smokeTimer < 2.0) {
-                // Move back
-                const t = (this.smokeTimer - 1.5) / 0.5;
+            } else if (this.smokeTimer < 2.5) {
+                // Move back (extended to allow smoke)
+                const t = (this.smokeTimer - 1.5) / 1.0;
                 this.cigaretteGroup.position.x = THREE.MathUtils.lerp(0, 0.2, t);
                 this.cigaretteGroup.position.y = THREE.MathUtils.lerp(-0.1, -0.2, t);
                 this.cigaretteGroup.position.z = THREE.MathUtils.lerp(-0.2, -0.4, t);
@@ -731,9 +786,15 @@ export class Player {
 
     useHeroin() {
         if (!this.hasHeroin || this.isUsingHeroin) return;
+        if (this.heroinCount <= 0) {
+            console.log("No Heroin left!");
+            return;
+        }
         this.isUsingHeroin = true;
         this.heroinTimer = 0;
         this.heroinHighTriggered = false;
+        this.heroinCount--;
+        this.updateInventoryUI(this.hasHeroin ? 3 : 0);
 
         // Init Audio Context if needed
         if (!this.audioCtx) {

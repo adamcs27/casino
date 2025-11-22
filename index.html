@@ -21,6 +21,11 @@
         <div id="crosshair">+</div>
         <div id="interaction-prompt">Press E to Interact</div>
         <div id="money-display">Money: $100</div>
+        <div id="debug-menu" style="display: none;">
+            <div>Crosshair Position:</div>
+            <div id="debug-coords">X: 0, Y: 0, Z: 0</div>
+            <div style="font-size: 12px; margin-top: 5px; color: #888;">Shift+O to copy</div>
+        </div>
         <div id="controls-display">Press "M" for Menu<br>Press "T" to Skip Song</div>
         <div id="radio-container">
             <div id="radio-icon">📻</div>
@@ -35,10 +40,12 @@
         <div id="heroin-text">KILL THE GUARD</div>
         <div id="broke-notification">Play snake on the computer for Money</div>
 
+        <div id="inventory-hint"
+            style="position: absolute; bottom: 130px; left: 20px; color: #ff0; font-size: 12px; display: none;"></div>
         <div id="inventory-list">
             <div id="item-1" class="inv-item">1. Cigarette</div>
-            <div id="item-2" class="inv-item">2. Lean</div>
-            <div id="item-3" class="inv-item">3. Heroin</div>
+            <div id="item-2" class="inv-item">2. Lean <span id="lean-count">(2)</span></div>
+            <div id="item-3" class="inv-item">3. Heroin <span id="heroin-count">(1)</span></div>
             <div id="item-4" class="inv-item">4. Knife</div>
         </div>
 

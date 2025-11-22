@@ -153,8 +153,24 @@ body {
     top: 20px;
     left: 20px;
     font-size: 24px;
-    color: #ffd700;
-    text-shadow: 2px 2px 0 #000;
+    color: #0f0;
+}
+
+#debug-menu {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 16px;
+    color: #00ff00;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border: 1px solid #00ff00;
+    font-family: monospace;
+}
+
+#debug-coords {
+    margin-top: 5px;
+    color: #ffff00;
 }
 
 #controls-display {
@@ -338,7 +354,7 @@ body {
 
 #lean-text {
     position: absolute;
-    top: 50%;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
     color: #a020f0;

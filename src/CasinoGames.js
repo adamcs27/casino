@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 
 export class CasinoGames {
-    constructor() {
+    constructor(player) {
+        this.player = player;
         this.money = 100;
         this.isGameOpen = false;
         this.currentGame = null;
+        this.savedPlayerPosition = null;
+        this.savedPlayerRotation = null;
 
         this.ui = {
             overlay: document.getElementById('game-overlay'),
@@ -20,11 +23,29 @@ export class CasinoGames {
         this.ui.closeBtn.addEventListener('click', () => this.closeGame());
     }
 
-    openGame(type) {
+    openGame(type, userData = {}) {
         this.isGameOpen = true;
         this.currentGame = type;
+        this.currentGameData = userData; // Store bet amount and other data
         this.ui.overlay.classList.remove('hidden');
         document.exitPointerLock();
+
+        // Teleport player for blackjack
+        if (type === 'blackjack') {
+            // Save current position
+            const playerObj = this.player.controls.getObject();
+            this.savedPlayerPosition = playerObj.position.clone();
+            this.savedPlayerRotation = playerObj.rotation.clone();
+
+            // Teleport to chair (chair is at 5, 0, 7.5, table at 5, 1, 5)
+            playerObj.position.set(5, 2.0, 7.5); // Sitting height
+
+            // Face the table (looking towards negative Z)
+            playerObj.rotation.set(0, 0, 0);
+            if (this.player.camera) {
+                this.player.camera.rotation.set(0, 0, 0);
+            }
+        }
 
         this.renderGameUI(type);
     }
@@ -60,26 +81,31 @@ export class CasinoGames {
     }
 
     renderGameUI(type) {
-        // Clear previous content but keep close button
-        const closeBtn = this.ui.closeBtn;
-        this.ui.content.innerHTML = '';
-        this.ui.content.appendChild(closeBtn);
+        this.ui.content.innerHTML = '<button id="close-game">Close</button>';
+        this.ui.closeBtn = document.getElementById('close-game');
+        this.ui.closeBtn.addEventListener('click', () => this.closeGame());
 
-        const title = document.createElement('h2');
-        title.innerText = type.toUpperCase();
-        title.style.color = '#fff';
-        this.ui.content.appendChild(title);
-
-        if (type === 'slots') {
-            this.renderSlots();
-        } else if (type === 'blackjack') {
-            this.renderBlackjack();
-        } else if (type === 'snake') {
-            this.renderSnake();
+        switch (type) {
+            case 'slots':
+                this.renderSlots();
+                break;
+            case 'blackjack':
+                this.renderBlackjack();
+                break;
+            case 'snake':
+                this.renderSnake();
+                break;
+            case 'drug_dealer':
+                this.renderDrugShop();
+                break;
         }
     }
 
     renderSlots() {
+        // Get bet amount from machine data, default to $10
+        const betAmount = this.currentGameData.betAmount || 10;
+        const payout = betAmount * 10; // 10x multiplier for wins
+
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.gap = '20px';
@@ -110,12 +136,16 @@ export class CasinoGames {
         this.ui.content.appendChild(messageDiv);
 
         const spinBtn = document.createElement('button');
-        spinBtn.innerText = 'SPIN ($10)';
+        spinBtn.innerText = `SPIN ($${betAmount})`;
         spinBtn.style.padding = '10px 20px';
         spinBtn.style.fontSize = '20px';
         spinBtn.onclick = () => {
-            if (this.money < 10) return;
-            this.updateMoney(-10);
+            if (this.money < betAmount) {
+                messageDiv.innerText = 'Not enough money!';
+                messageDiv.style.color = '#f00';
+                return;
+            }
+            this.updateMoney(-betAmount);
             messageDiv.innerText = '';
 
             // Simple animation
@@ -128,8 +158,8 @@ export class CasinoGames {
                     // Result
                     const results = reels.map(r => parseInt(r.innerText));
                     if (results[0] === results[1] && results[1] === results[2]) {
-                        this.updateMoney(100);
-                        messageDiv.innerText = 'YOU WIN! +$100';
+                        this.updateMoney(payout);
+                        messageDiv.innerText = `YOU WIN! +$${payout}`;
                         messageDiv.style.color = '#0f0';
                     } else {
                         messageDiv.innerText = 'Try Again';
@@ -389,5 +419,111 @@ export class CasinoGames {
         window.addEventListener('keydown', handleKey);
 
         startSnake();
+    }
+
+    renderDrugShop() {
+        const shopDiv = document.createElement('div');
+        shopDiv.style.textAlign = 'center';
+        shopDiv.style.padding = '20px';
+        shopDiv.innerHTML = `
+            <h2 style="color: #0f0;">Drug Dealer</h2>
+            <p style="color: #fff;">What you need?</p>
+        `;
+
+        // Container for side-by-side layout
+        const itemsContainer = document.createElement('div');
+        itemsContainer.style.display = 'flex';
+        itemsContainer.style.justifyContent = 'center';
+        itemsContainer.style.gap = '20px';
+        itemsContainer.style.marginTop = '20px';
+
+        // Pint of Tris (Lean) option
+        const leanDiv = document.createElement('div');
+        leanDiv.style.padding = '15px';
+        leanDiv.style.border = '2px solid #800080';
+        leanDiv.style.background = 'rgba(128, 0, 128, 0.2)';
+        leanDiv.style.minWidth = '200px';
+        leanDiv.innerHTML = `
+            <h3 style="color: #ff00ff;">Pint of Tris</h3>
+            <p style="color: #fff;">Price: $500</p>
+            <p style="color: #aaa; font-size: 12px;">+3 Lean</p>
+        `;
+        const leanBtn = document.createElement('button');
+        leanBtn.innerText = 'Buy Pint';
+        leanBtn.style.padding = '10px 20px';
+        leanBtn.style.cursor = 'pointer';
+        leanBtn.addEventListener('click', () => this.buyDrug('lean', 500, 3));
+        leanDiv.appendChild(leanBtn);
+        itemsContainer.appendChild(leanDiv);
+
+        // Heroin option
+        const heroinDiv = document.createElement('div');
+        heroinDiv.style.padding = '15px';
+        heroinDiv.style.border = '2px solid #ff4500';
+        heroinDiv.style.background = 'rgba(255, 69, 0, 0.2)';
+        heroinDiv.style.minWidth = '200px';
+        heroinDiv.innerHTML = `
+            <h3 style="color: #ff4500;">Heroin</h3>
+            <p style="color: #fff;">Price: $100</p>
+            <p style="color: #aaa; font-size: 12px;">+1 Heroin</p>
+        `;
+        const heroinBtn = document.createElement('button');
+        heroinBtn.innerText = 'Buy Heroin';
+        heroinBtn.style.padding = '10px 20px';
+        heroinBtn.style.cursor = 'pointer';
+        heroinBtn.addEventListener('click', () => this.buyDrug('heroin', 100, 1));
+        heroinDiv.appendChild(heroinBtn);
+        itemsContainer.appendChild(heroinDiv);
+
+        shopDiv.appendChild(itemsContainer);
+        this.ui.content.appendChild(shopDiv);
+    }
+
+    buyDrug(type, price, amount) {
+        if (this.money < price) {
+            this.showPurchaseNotification("Not enough money!", '#f00');
+            return;
+        }
+
+        this.money -= price;
+        this.updateMoney(0); // Update display
+
+        if (type === 'lean') {
+            this.player.leanCount += amount;
+            this.player.updateInventoryUI(this.player.hasLean ? 2 : 0);
+            console.log("Bought Pint of Tris! New count:", this.player.leanCount);
+            this.showPurchaseNotification(`Purchased Pint of Tris! (+${amount} Lean)`, '#ff00ff');
+        } else if (type === 'heroin') {
+            this.player.heroinCount += amount;
+            this.player.updateInventoryUI(this.player.hasHeroin ? 3 : 0);
+            console.log("Bought Heroin! New count:", this.player.heroinCount);
+            this.showPurchaseNotification(`Purchased Heroin! (+${amount})`, '#ff4500');
+        }
+    }
+
+    showPurchaseNotification(message, color) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.innerText = message;
+        notification.style.position = 'fixed';
+        notification.style.top = '50%';
+        notification.style.left = '50%';
+        notification.style.transform = 'translate(-50%, -50%)';
+        notification.style.padding = '20px 40px';
+        notification.style.background = 'rgba(0, 0, 0, 0.9)';
+        notification.style.color = color;
+        notification.style.fontSize = '24px';
+        notification.style.fontWeight = 'bold';
+        notification.style.border = `3px solid ${color}`;
+        notification.style.borderRadius = '10px';
+        notification.style.zIndex = '10000';
+        notification.style.pointerEvents = 'none';
+
+        document.body.appendChild(notification);
+
+        // Remove after 2 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 2000);
     }
 }
