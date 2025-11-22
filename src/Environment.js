@@ -77,32 +77,38 @@ export class Environment {
         this.scene.add(pointLight);
 
         // Pillars removed as per request
-        // Add Slot Machines with different bet amounts
-        const machineGeo = new THREE.BoxGeometry(1.5, 2.5, 1.5);
-
-        const machineConfigs = [
-            { pos: [-3, 1.25, -9], color: 0x00ff00, bet: 5 },   // Green - $5
-            { pos: [0, 1.25, -9], color: 0xffaa00, bet: 10 },   // Orange - $10
-            { pos: [3, 1.25, -9], color: 0xff0000, bet: 25 }    // Red - $25
+        // Slot Machines (3 machines with different colors and bet amounts)
+        const slotConfigs = [
+            { color: 0xff0000, betAmount: 5, position: -4 },   // Red - $5
+            { color: 0x0000ff, betAmount: 10, position: 0 },   // Blue - $10
+            { color: 0xffff00, betAmount: 25, position: 4 }    // Yellow - $25
         ];
 
-        machineConfigs.forEach(config => {
-            const machineMat = new THREE.MeshStandardMaterial({ color: config.color, roughness: 0.5 });
-            const machine = new THREE.Mesh(machineGeo, machineMat);
-            machine.position.set(...config.pos);
-            machine.userData = {
-                interactable: true,
-                type: 'slots',
-                betAmount: config.bet
-            };
-            this.scene.add(machine);
+        slotConfigs.forEach(config => {
+            const slotMachine = new THREE.Group();
+            const bodyGeo = new THREE.BoxGeometry(2, 3, 1.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: config.color });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            slotMachine.add(body);
 
-            // Add a "screen" to the machine
-            const screenGeo = new THREE.PlaneGeometry(1, 1);
-            const screenMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            // Screen (glowing)
+            const screenGeo = new THREE.PlaneGeometry(1.6, 1.2);
+            const screenMat = new THREE.MeshStandardMaterial({
+                color: 0x00ff00,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.5
+            });
             const screen = new THREE.Mesh(screenGeo, screenMat);
             screen.position.set(0, 0.5, 0.76);
-            machine.add(screen);
+            slotMachine.add(screen);
+
+            slotMachine.position.set(config.position, 1.5, -9.4);
+            slotMachine.userData = {
+                interactable: true,
+                type: 'slots',
+                betAmount: config.betAmount
+            };
+            this.scene.add(slotMachine);
         });
 
         // Blackjack Table
@@ -192,6 +198,31 @@ export class Environment {
         monitor.add(screen);
 
         // Make desk interactable (or the monitor)
+
+        // YoungBoy Painting on left wall
+        const paintingTextureLoader = new THREE.TextureLoader();
+        paintingTextureLoader.load('./src/Images/youngboy.jpeg', (texture) => {
+            // Create frame
+            const frameGeo = new THREE.BoxGeometry(1.2, 1.6, 0.1);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 }); // Brown frame
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+
+            // Create painting with grayscale effect
+            const paintingGeo = new THREE.PlaneGeometry(1.0, 1.4);
+            const paintingMat = new THREE.MeshStandardMaterial({
+                map: texture,
+                color: 0x888888 // Grayscale tint
+            });
+            const painting = new THREE.Mesh(paintingGeo, paintingMat);
+            painting.position.z = 0.06; // Slightly in front of frame
+            painting.userData = { interactable: true, type: 'painting' };
+            frame.add(painting);
+
+            // Position on left wall (near snake desk)
+            frame.position.set(-9.9, 2.5, 0);
+            frame.rotation.y = Math.PI / 2; // Face into room
+            this.scene.add(frame);
+        });
 
         // Entry Door (Moved to side wall)
         // Door and Frame

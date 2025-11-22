@@ -63,6 +63,18 @@ export class Player {
         this.createHeroin();
         this.createKnife();
         this.createLean();
+
+        // Guard kill sound effect
+        this.guardKillSound = null;
+        const listener = new THREE.AudioListener();
+        camera.add(listener);
+        this.guardKillSound = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('./Sounds/no.mp3', (buffer) => {
+            this.guardKillSound.setBuffer(buffer);
+            this.guardKillSound.setVolume(0.5); // Quieter
+            this.guardKillSound.setPlaybackRate(0.8); // Play at 0.8 speed
+        });
     }
 
     knockOutGuard(guard) {
@@ -76,6 +88,11 @@ export class Player {
 
         guard.userData.isKnockedOut = true;
         this.lastKnockedOutGuard = guard;
+
+        // Play guard kill sound
+        if (this.guardKillSound && !this.guardKillSound.isPlaying) {
+            this.guardKillSound.play();
+        }
 
         // Simple fall animation
         let angle = 0;

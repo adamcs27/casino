@@ -62,6 +62,8 @@ export class InteractionManager {
                 }
             } else if (type === 'drug_dealer') {
                 this.prompt.innerText = 'Press E to buy drugs';
+            } else if (type === 'painting') {
+                this.prompt.innerText = 'Press E to touch the painting';
             } else {
                 const displayType = type.charAt(0).toUpperCase() + type.slice(1);
                 this.prompt.innerText = `Press E to Play ${displayType}`;

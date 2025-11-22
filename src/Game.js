@@ -25,7 +25,7 @@ export class Game {
         this.environment = new Environment(this.scene);
         this.outsideEnvironment = null;
         this.player = new Player(this.camera, document.body);
-        this.casinoGames = new CasinoGames(this.player);
+        this.casinoGames = new CasinoGames(this.scene, this.player);
         this.interactionManager = new InteractionManager(this.camera, this.scene);
 
         // Add player to scene
@@ -64,16 +64,30 @@ export class Game {
         window.addEventListener('resize', this.onWindowResize.bind(this));
 
         // Click to lock pointer and start music
-        document.addEventListener('click', () => {
-            if (!this.casinoGames.isGameOpen) {
+        document.body.addEventListener('click', () => {
+            if (!this.player.isLocked) {
                 this.player.lock();
-            }
-            // Start music on first interaction
-            if (this.bgMusic && !this.bgMusic.isPlaying && !this.musicStarted) {
-                this.playNextTrack();
-                this.musicStarted = true;
+                if (!this.musicStarted) {
+                    this.playNextTrack();
+                    this.musicStarted = true;
+                }
             }
         });
+
+        // Volume slider control
+        const volumeSlider = document.getElementById('music-volume');
+        const volumeValue = document.getElementById('volume-value');
+        if (volumeSlider && volumeValue) {
+            volumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                volumeValue.innerText = `${e.target.value}%`;
+                if (this.bgMusic) {
+                    this.bgMusic.setVolume(volume);
+                }
+            });
+        }
+
+        this.setupAudio();
 
         // Skip song listener
         window.addEventListener('keydown', (e) => {
@@ -83,6 +97,17 @@ export class Game {
         });
 
         this.setupAudio();
+
+        // Painting sound effect
+        this.paintingSound = null;
+        const paintingListener = new THREE.AudioListener();
+        this.camera.add(paintingListener);
+        this.paintingSound = new THREE.Audio(paintingListener);
+        const paintingAudioLoader = new THREE.AudioLoader();
+        paintingAudioLoader.load('./Sounds/yb.mp3', (buffer) => {
+            this.paintingSound.setBuffer(buffer);
+            this.paintingSound.setVolume(1.8); // Louder
+        });
     }
 
     setupAudio() {
@@ -100,7 +125,8 @@ export class Game {
             './src/Music/SpotiDownloader.com - Free Lilquan - Lilqua 50.mp3',
             './src/Music/Good Looking.mp3',
             './src/Music/Nightcall.mp3',
-            './src/Music/That Ain\'t On The News.mp3'
+            './src/Music/That Ain\'t On The News.mp3',
+            './src/Music/Another High - Snow Strippers.mp3'
         ];
 
         // Shuffle the playlist
@@ -108,6 +134,7 @@ export class Game {
 
         this.currentTrackIndex = 0;
         this.musicStarted = false;
+        this.hasPlayedNightcallOutside = false; // Track if Nightcall has been played outside
 
         this.bgMusic.onEnded = () => {
             this.playNextTrack();
@@ -157,7 +184,7 @@ export class Game {
         this.audioLoader.load(file, (buffer) => {
             this.bgMusic.setBuffer(buffer);
             this.bgMusic.setLoop(false);
-            this.bgMusic.setVolume(0.5);
+            this.bgMusic.setVolume(0.3); // Lower default volume (30%)
             this.bgMusic.play();
         }, undefined, (err) => {
             console.error("Error loading music:", err);
@@ -195,13 +222,15 @@ export class Game {
             nowPlayingText.offsetHeight; /* trigger reflow */
             nowPlayingText.style.animation = 'scrollText 10s linear infinite';
         }
-
-        this.audioLoader.load(file, (buffer) => {
+        const track = this.playlist[trackIndex];
+        this.audioLoader.load(track, (buffer) => {
             this.bgMusic.setBuffer(buffer);
-            this.bgMusic.setLoop(false);
-            this.bgMusic.setVolume(0.5);
+            this.bgMusic.setVolume(0.3); // Lower default volume (30%)
             this.bgMusic.play();
+            // Assuming updateNowPlaying is a new method or intended to be added
+            // this.updateNowPlaying(track);
         });
+        this.currentTrackIndex = trackIndex + 1;
     }
 
     start() {
@@ -243,15 +272,36 @@ export class Game {
             if (this.interactionManager.canInteract && this.player.input.interact) {
                 const target = this.interactionManager.target;
                 if (target) {
-                    // Door interaction
-                    if (target.userData.type === 'door') {
+                    const type = target.userData.type;
+                    if (type === 'slots' || type === 'blackjack' || type === 'snake' || type === 'drug_dealer') {
+                        this.casinoGames.openGame(type, target.userData); // Pass userData with betAmount
+                        this.player.unlock(); // Assuming games unlock pointer
+                    } else if (type === 'door') {
                         this.handleDoorTeleport(target.userData.location);
-                    }
-                    // Other interactions
-                    else if (target.userData.interactable) {
-                        if (target.userData.type !== 'security_guard' && target.userData.type !== 'guard') {
-                            this.casinoGames.openGame(target.userData.type, target.userData);
-                            this.player.unlock();
+                    } else if (type === 'painting') {
+                        // Play painting sound and pause music
+                        if (this.paintingSound && !this.paintingSound.isPlaying) {
+                            // Pause background music
+                            const wasMusicPlaying = this.bgMusic && this.bgMusic.isPlaying;
+                            if (wasMusicPlaying) {
+                                this.bgMusic.pause();
+                            }
+
+                            // Play painting sound
+                            this.paintingSound.play();
+
+                            // Resume music when painting sound ends
+                            const resumeMusic = () => {
+                                if (wasMusicPlaying && this.bgMusic) {
+                                    this.bgMusic.play();
+                                }
+                                this.paintingSound.source.removeEventListener('ended', resumeMusic);
+                            };
+
+                            // Use the source's ended event
+                            if (this.paintingSound.source) {
+                                this.paintingSound.source.addEventListener('ended', resumeMusic);
+                            }
                         }
                     }
                 }
@@ -263,14 +313,20 @@ export class Game {
 
         // Music Speed Control
         if (this.bgMusic && this.bgMusic.isPlaying) {
-            // Heroin speeds up to 2x, Lean slows to 1x
-            if (this.player.isHeroinActive) {
+            // Music Playback Rate based on drug effects
+            // Heroin speeds up to 2x, Lean slows down by 0.3x
+            // Combined: start at 1.0, add heroin (+1.0), subtract lean (-0.3) = 1.7x
+            if (this.player.isHeroinActive && this.player.isLeanActive) {
+                if (this.bgMusic.playbackRate !== 1.7) {
+                    this.bgMusic.setPlaybackRate(1.7);
+                }
+            } else if (this.player.isHeroinActive) {
                 if (this.bgMusic.playbackRate !== 2.0) {
                     this.bgMusic.setPlaybackRate(2.0);
                 }
             } else if (this.player.isLeanActive) {
-                if (this.bgMusic.playbackRate !== 1.0) {
-                    this.bgMusic.setPlaybackRate(1.0);
+                if (this.bgMusic.playbackRate !== 0.7) {
+                    this.bgMusic.setPlaybackRate(0.7);
                 }
             } else {
                 if (this.bgMusic.playbackRate !== 1.0) {
@@ -319,15 +375,17 @@ export class Game {
                 // Create outside environment
                 this.outsideEnvironment = new OutsideEnvironment(this.scene);
 
-                // Play Nightcall when going outside (only if not already playing)
-                if (this.musicStarted) {
+                // Play Nightcall when going outside (only first time)
+                if (this.musicStarted && !this.hasPlayedNightcallOutside) {
                     const currentTrack = this.playlist[this.currentTrackIndex];
                     const isNightcallPlaying = currentTrack && currentTrack.includes('Nightcall');
 
                     if (!isNightcallPlaying) {
                         this.playSpecificTrack('Nightcall');
                     }
+                    this.hasPlayedNightcallOutside = true;
                 }
+                // After first time, music continues playing whatever was on
 
                 // Teleport player outside casino
                 playerObj.position.set(0, 2.0, 5);

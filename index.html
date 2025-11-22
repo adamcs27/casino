@@ -50,8 +50,14 @@
         </div>
 
         <div id="pause-menu" class="hidden">
-            <h1>PAUSED</h1>
-            <p>Press CLICK to Resume</p>
+            <h2>Menu</h2>
+            <div id="volume-control" style="margin: 20px 0;">
+                <label for="music-volume" style="color: #fff; font-size: 16px;">Music Volume:</label><br>
+                <input type="range" id="music-volume" min="0" max="100" value="30"
+                    style="width: 200px; margin-top: 10px;">
+                <span id="volume-value" style="color: #fff; font-size: 16px; margin-left: 10px;">30%</span>
+            </div>
+            <button id="resume-btn">Resume</button>
             <button id="quit-btn">QUIT GAME</button>
         </div>
 

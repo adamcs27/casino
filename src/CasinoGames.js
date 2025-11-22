@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 
 export class CasinoGames {
-    constructor(player) {
+    constructor(scene, player) {
+        this.scene = scene;
         this.player = player;
-        this.money = 100;
         this.isGameOpen = false;
         this.currentGame = null;
         this.savedPlayerPosition = null;
@@ -12,21 +12,28 @@ export class CasinoGames {
         this.ui = {
             overlay: document.getElementById('game-overlay'),
             content: document.getElementById('game-content'),
-            closeBtn: document.getElementById('close-game'),
-            moneyDisplay: document.getElementById('money-display')
+            closeBtn: null
         };
 
-        this.setupEventListeners();
-    }
+        this.money = 1000;
+        this.updateMoney(0);
 
-    setupEventListeners() {
-        this.ui.closeBtn.addEventListener('click', () => this.closeGame());
+        // Win sound effect
+        this.winSound = null;
+        const listener = new THREE.AudioListener();
+        this.winSound = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('./Sounds/bungee.mp3', (buffer) => {
+            this.winSound.setBuffer(buffer);
+            this.winSound.setVolume(0.75); // Louder
+            this.winSound.setPlaybackRate(1.1); // 1.1x speed
+        });
     }
 
     openGame(type, userData = {}) {
         this.isGameOpen = true;
         this.currentGame = type;
-        this.currentGameData = userData; // Store bet amount and other data
+        this.currentGameData = userData; // Store userData including betAmount
         this.ui.overlay.classList.remove('hidden');
         document.exitPointerLock();
 
@@ -58,7 +65,15 @@ export class CasinoGames {
 
         // Re-bind close button since we wiped innerHTML
         this.ui.closeBtn = document.getElementById('close-game');
-        this.ui.closeBtn.addEventListener('click', () => this.closeGame());
+        this.ui.closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeGame();
+        });
+
+        // Lock the mouse after a brief delay to avoid browser prompt
+        setTimeout(() => {
+            this.player.lock();
+        }, 100);
     }
 
     updateMoney(amount) {
@@ -83,7 +98,10 @@ export class CasinoGames {
     renderGameUI(type) {
         this.ui.content.innerHTML = '<button id="close-game">Close</button>';
         this.ui.closeBtn = document.getElementById('close-game');
-        this.ui.closeBtn.addEventListener('click', () => this.closeGame());
+        this.ui.closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeGame();
+        });
 
         switch (type) {
             case 'slots':
@@ -139,7 +157,8 @@ export class CasinoGames {
         spinBtn.innerText = `SPIN ($${betAmount})`;
         spinBtn.style.padding = '10px 20px';
         spinBtn.style.fontSize = '20px';
-        spinBtn.onclick = () => {
+        spinBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent cursor lock
             if (this.money < betAmount) {
                 messageDiv.innerText = 'Not enough money!';
                 messageDiv.style.color = '#f00';
@@ -157,12 +176,30 @@ export class CasinoGames {
                     clearInterval(interval);
                     // Result
                     const results = reels.map(r => parseInt(r.innerText));
-                    if (results[0] === results[1] && results[1] === results[2]) {
+                    const r1 = results[0];
+                    const r2 = results[1];
+                    const r3 = results[2];
+
+                    if (r1 === r2 && r2 === r3) {
+                        const payout = betAmount * 10;
                         this.updateMoney(payout);
-                        messageDiv.innerText = `YOU WIN! +$${payout}`;
+                        messageDiv.innerText = `JACKPOT! You won $${payout}!`;
                         messageDiv.style.color = '#0f0';
+                        // Play win sound
+                        if (this.winSound && !this.winSound.isPlaying) {
+                            this.winSound.play();
+                        }
+                    } else if (r1 === r2 || r2 === r3 || r1 === r3) {
+                        const payout = betAmount * 2;
+                        this.updateMoney(payout);
+                        messageDiv.innerText = `You won $${payout}!`;
+                        messageDiv.style.color = '#ff0';
+                        // Play win sound
+                        if (this.winSound && !this.winSound.isPlaying) {
+                            this.winSound.play();
+                        }
                     } else {
-                        messageDiv.innerText = 'Try Again';
+                        messageDiv.innerText = 'No match. Try again!';
                         messageDiv.style.color = '#f00';
                     }
                 }
@@ -255,7 +292,8 @@ export class CasinoGames {
             resetBtn.style.display = 'inline-block';
         };
 
-        hitBtn.onclick = () => {
+        hitBtn.onclick = (e) => {
+            e.stopPropagation();
             if (gameOver) return;
             playerHand.push(deck.pop());
             updateUI();
@@ -264,7 +302,8 @@ export class CasinoGames {
             }
         };
 
-        standBtn.onclick = () => {
+        standBtn.onclick = (e) => {
+            e.stopPropagation();
             if (gameOver) return;
 
             // Dealer AI
@@ -280,6 +319,10 @@ export class CasinoGames {
             if (dVal > 21 || pVal > dVal) {
                 this.updateMoney(100); // Return bet + win
                 endGame('YOU WIN! +$50', '#0f0');
+                // Play win sound
+                if (this.winSound && !this.winSound.isPlaying) {
+                    this.winSound.play();
+                }
             } else if (pVal === dVal) {
                 this.updateMoney(50); // Return bet
                 endGame('PUSH', '#ff0');
@@ -288,7 +331,8 @@ export class CasinoGames {
             }
         };
 
-        resetBtn.onclick = () => {
+        resetBtn.onclick = (e) => {
+            e.stopPropagation();
             startRound();
         };
 
@@ -339,9 +383,14 @@ export class CasinoGames {
         this.ui.content.appendChild(messageDiv);
 
         const resetBtn = document.createElement('button');
-        resetBtn.innerText = 'PLAY AGAIN';
-        resetBtn.style.display = 'none';
+        resetBtn.innerText = 'Reset';
+        resetBtn.style.padding = '10px 20px';
+        resetBtn.style.fontSize = '16px';
         resetBtn.style.marginTop = '10px';
+        resetBtn.onclick = (e) => {
+            e.stopPropagation();
+            startSnake();
+        };
         this.ui.content.appendChild(resetBtn);
 
         const ctx = canvas.getContext('2d');
@@ -452,7 +501,10 @@ export class CasinoGames {
         leanBtn.innerText = 'Buy Pint';
         leanBtn.style.padding = '10px 20px';
         leanBtn.style.cursor = 'pointer';
-        leanBtn.addEventListener('click', () => this.buyDrug('lean', 500, 3));
+        leanBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.buyDrug('lean', 500, 3);
+        });
         leanDiv.appendChild(leanBtn);
         itemsContainer.appendChild(leanDiv);
 
@@ -471,7 +523,10 @@ export class CasinoGames {
         heroinBtn.innerText = 'Buy Heroin';
         heroinBtn.style.padding = '10px 20px';
         heroinBtn.style.cursor = 'pointer';
-        heroinBtn.addEventListener('click', () => this.buyDrug('heroin', 100, 1));
+        heroinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.buyDrug('heroin', 100, 1);
+        });
         heroinDiv.appendChild(heroinBtn);
         itemsContainer.appendChild(heroinDiv);
 
